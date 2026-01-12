@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard Ejecutivo | PowerBI Lite</title>
+  <link rel="stylesheet" href="./styles.css" />
+
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sbBrand">
+        <div class="sbLogo">📊</div>
+        <div>
+          <div class="sbTitle">PowerBI Lite</div>
+          <div class="sbSub">Executive Dashboard</div>
+        </div>
+      </div>
+
+      <nav class="sbNav">
+        <button class="sbItem active" id="navExec" type="button">Executive</button>
+        <button class="sbItem" id="navAccum" type="button">Acumulados</button>
+        <button class="sbItem" id="navDim" type="button">Dimensiones</button>
+      </nav>
+
+      <div class="sbActions">
+        <label class="btn full">
+          <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" hidden />
+          Cargar Excel
+        </label>
+        <button id="btnDemo" class="btn secondary full" type="button">Cargar Demo</button>
+        <button id="btnReset" class="btn ghost full" type="button">Limpiar</button>
+
+        <div class="sbHint">
+          Hojas esperadas:
+          <code>DATA_KPIS</code>, <code>DATA_DIM</code>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topLeft">
+          <div class="pageTitle" id="pageTitle">Executive</div>
+          <div class="muted" id="dataStatus">Sin datos cargados</div>
+        </div>
+
+        <div class="topRight">
+          <div class="miniPill">Modo: <span id="modePill">Periodo</span></div>
+        </div>
+      </header>
+
+      <!-- SLICERS -->
+      <section class="panel">
+        <div class="panelTitle">Filtros</div>
+        <div class="slicers">
+          <div class="field">
+            <label>Año</label>
+            <select id="yearSelect"></select>
+          </div>
+          <div class="field">
+            <label>Mes</label>
+            <select id="monthSelect"></select>
+          </div>
+          <div class="field">
+            <label>Sucursal</label>
+            <select id="branchSelect"></select>
+          </div>
+          <div class="field">
+            <label>Vendedor</label>
+            <select id="sellerSelect"></select>
+          </div>
+          <div class="field wide">
+            <label>KPI</label>
+            <select id="kpiSelect"></select>
+          </div>
+
+          <div class="field">
+            <label>Vista</label>
+            <select id="viewMode">
+              <option value="period">Periodo</option>
+              <option value="accum">Acumulado</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="quickBar">
+          <div class="quickTitle">Accesos rápidos acumulado</div>
+          <div class="quickBtns">
+            <button class="chip" id="chipYTD" type="button">YTD</button>
+            <button class="chip" id="chipEneJun" type="button">Ene–Jun</button>
+            <button class="chip" id="chipJulNov" type="button">Jul–Nov</button>
+            <button class="chip" id="chipFull" type="button">Ene–Dic</button>
+          </div>
+
+          <div class="accControls" id="accControls">
+            <div class="field">
+              <label>Año A</label>
+              <select id="yearASelect"></select>
+            </div>
+            <div class="field">
+              <label>Año B</label>
+              <select id="yearBSelect"></select>
+            </div>
+            <div class="field">
+              <label>Mes inicio</label>
+              <select id="accStartMonth"></select>
+            </div>
+            <div class="field">
+              <label>Mes fin</label>
+              <select id="accEndMonth"></select>
+            </div>
+            <div class="field">
+              <label>Gráfica</label>
+              <select id="accChart">
+                <option value="bars">Barras</option>
+                <option value="cumline">Línea acumulada</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- KPI STRIP -->
+      <section class="kpiStrip">
+        <div class="kpiCard">
+          <div class="kpiTop">
+            <div class="kpiLabel" id="kpiLabelA">Valor</div>
+            <div class="badge" id="badgeA">—</div>
+          </div>
+          <div class="kpiValue" id="kpiValueA">—</div>
+        </div>
+
+        <div class="kpiCard">
+          <div class="kpiTop">
+            <div class="kpiLabel" id="kpiLabelB">Comparativo</div>
+            <div class="badge" id="badgeB">—</div>
+          </div>
+          <div class="kpiValue" id="kpiValueB">—</div>
+        </div>
+
+        <div class="kpiCard">
+          <div class="kpiTop">
+            <div class="kpiLabel">Dif ($)</div>
+            <div class="badge" id="badgeDiff">—</div>
+          </div>
+          <div class="kpiValue" id="kpiDiffAbs">—</div>
+        </div>
+
+        <div class="kpiCard">
+          <div class="kpiTop">
+            <div class="kpiLabel">Dif (%)</div>
+            <div class="badge" id="badgePct">—</div>
+          </div>
+          <div class="kpiValue" id="kpiDiffPct">—</div>
+        </div>
+      </section>
+
+      <!-- CONTENT GRID -->
+      <section class="grid">
+        <div class="card">
+          <div class="cardHeader">
+            <h2 id="chartTitle">Tendencia</h2>
+            <div class="muted" id="chartMeta">—</div>
+          </div>
+          <div class="chartWrap">
+            <canvas id="chartMain"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="cardHeader">
+            <h2 id="tableTitle">Detalle</h2>
+            <div class="muted" id="tableMeta">—</div>
+          </div>
+
+          <div class="row">
+            <button id="btnExportTable" class="btn secondary" type="button">Exportar CSV</button>
+          </div>
+
+          <div class="tableWrap">
+            <table id="mainTable">
+              <thead>
+                <tr>
+                  <th id="thGroup">Grupo</th>
+                  <th>Registros</th>
+                  <th>Suma</th>
+                  <th>Promedio</th>
+                  <th>Máximo</th>
+                  <th>Mínimo</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="footerNote muted" id="warnings"></div>
+        </div>
+      </section>
+
+      <!-- DIM PAGE -->
+      <section id="dimPage" class="grid hidden">
+        <div class="card">
+          <div class="cardHeader">
+            <h2>Dimensiones</h2>
+            <div class="muted" id="dimMeta">—</div>
+          </div>
+
+          <div class="slicers">
+            <div class="field">
+              <label>Dimensión</label>
+              <select id="dimSelect">
+                <option value="MARCA">MARCA</option>
+                <option value="CATEGORIA">CATEGORIA</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Métrica</label>
+              <select id="dimMetric">
+                <option value="ventas_con_iva">Ventas (con IVA)</option>
+                <option value="venta_sin_iva">Ventas (sin IVA)</option>
+                <option value="utilidad">Utilidad</option>
+                <option value="costo">Costo</option>
+                <option value="margen">Margen</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Top</label>
+              <select id="topN">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="chartWrap">
+            <canvas id="chartDim"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="cardHeader">
+            <h2>Ranking</h2>
+            <div class="muted" id="dimTableMeta">—</div>
+          </div>
+
+          <div class="row">
+            <button id="btnExportDim" class="btn secondary" type="button">Exportar CSV</button>
+          </div>
+
+          <div class="tableWrap">
+            <table id="dimTable">
+              <thead>
+                <tr>
+                  <th>Clave</th>
+                  <th>Nombre</th>
+                  <th>Ventas</th>
+                  <th>Utilidad</th>
+                  <th>Margen</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="footerNote muted" id="dimWarnings"></div>
+        </div>
+      </section>
+
+      <footer class="footer muted">GitHub Pages | XLSX + Chart.js | PowerBI Lite (simple y ejecutivo)</footer>
+    </main>
+  </div>
+
+  <!-- Tooltip PowerBI -->
+  <div id="kpiTooltip" class="kpiTooltip hidden" role="tooltip"></div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
